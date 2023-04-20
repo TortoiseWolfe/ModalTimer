@@ -1,11 +1,13 @@
 using System;
 using System.Drawing;
-using System.Windows.Forms;
 using System.Net.Http;
+using System.Diagnostics;
+using System.Windows.Forms;
+
 using Amazon.EC2;
 using Amazon.EC2.Model;
-using Amazon.Runtime;
 using Amazon.Util;
+using Amazon.Runtime;
 
 namespace ModalTimer
 {
@@ -49,53 +51,58 @@ namespace ModalTimer
 
         private async void TerminateInstance()
         {
+            string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "powershell_log.txt");
+            string scriptFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts");
+            string scriptPath = Path.Combine(scriptFolderPath, "TerminateInstance.ps1");
+
             try
             {
-                using HttpClient httpClient = new HttpClient();
-                string instanceId = await httpClient.GetStringAsync("http://169.254.169.254/latest/meta-data/instance-id");
 
-                var ec2Client = new AmazonEC2Client();
-                var terminateRequest = new TerminateInstancesRequest
+                LogToFile($"Running PowerShell script: {scriptPath}", logFilePath);
+                var startInfo = new ProcessStartInfo
                 {
-                    InstanceIds = new List<string> { instanceId }
+                    FileName = @"C:\Program Files\PowerShell\7\pwsh.exe",
+                    Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
                 };
 
-                var response = await ec2Client.TerminateInstancesAsync(terminateRequest);
+                using (Process process = new Process { StartInfo = startInfo })
+                {
+                    process.OutputDataReceived += (s, e) => LogToFile($"[Output] {e.Data}", logFilePath);
+                    process.ErrorDataReceived += (s, e) => LogToFile($"[Error] {e.Data}", logFilePath);
 
-                if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    string successMessage = "Instance terminated successfully.";
-                    LogToFile(successMessage);
-                    MessageBox.Show(successMessage, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    // Wrap the process execution in a Task and use await
+                    await Task.Run(() => process.WaitForExit());
+                    process.WaitForExit();
                 }
-                else
-                {
-                    string errorMessage = "Failed to terminate the instance.";
-                    LogToFile(errorMessage);
-                    MessageBox.Show(errorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+
+                LogToFile("PowerShell script completed.", logFilePath);
             }
             catch (Exception ex)
             {
                 string errorMessage = $"An error occurred: {ex.Message}";
-                LogToFile(errorMessage);
+                LogToFile(errorMessage, logFilePath);
                 MessageBox.Show(errorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void LogToFile(string message)
+        private void LogToFile(string message, string logFilePath = "")
         {
-            try
+            if (string.IsNullOrEmpty(logFilePath))
             {
-                string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
-                using StreamWriter writer = new StreamWriter(logFilePath, true);
-                writer.WriteLine($"{DateTime.Now}: {message}");
-                MessageBox.Show($"Log file updated at: {logFilePath}", "Log File Location", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to write to log file: {ex.Message}", "Logging Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+
+            Trace.Listeners.Clear();
+            Trace.Listeners.Add(new TextWriterTraceListener(logFilePath, "myListener"));
+            Trace.WriteLine($"{DateTime.Now}: {message}");
+            Trace.Flush();
         }
 
 
