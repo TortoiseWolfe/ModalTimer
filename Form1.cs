@@ -61,7 +61,7 @@ namespace ModalTimer
                 LogToFile($"Running PowerShell script: {scriptPath}", logFilePath);
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = @"C:\Program Files\PowerShell\7\pwsh.exe",
+                    FileName = @"C:\PowerShell7\pwsh.exe",
                     Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
