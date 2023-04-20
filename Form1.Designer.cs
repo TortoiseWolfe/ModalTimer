@@ -32,6 +32,7 @@
             Btn_Yes = new Button();
             Btn_No = new Button();
             Label_CountDown = new Label();
+            Label_LogFilePath = new Label();
             SuspendLayout();
             // 
             // Label_Message
@@ -80,12 +81,22 @@
             Label_CountDown.TabIndex = 3;
             Label_CountDown.Text = "label1";
             // 
+            // Label_LogFilePath
+            // 
+            Label_LogFilePath.AutoSize = true;
+            Label_LogFilePath.Location = new Point(174, 9);
+            Label_LogFilePath.Name = "Label_LogFilePath";
+            Label_LogFilePath.Size = new Size(38, 15);
+            Label_LogFilePath.TabIndex = 4;
+            Label_LogFilePath.Text = "label1";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ActiveCaption;
             ClientSize = new Size(482, 109);
+            Controls.Add(Label_LogFilePath);
             Controls.Add(Label_CountDown);
             Controls.Add(Btn_No);
             Controls.Add(Btn_Yes);
@@ -103,5 +114,6 @@
         private Button Btn_Yes;
         private Button Btn_No;
         private Label Label_CountDown;
+        private Label Label_LogFilePath;
     }
 }
