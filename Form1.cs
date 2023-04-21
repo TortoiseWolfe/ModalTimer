@@ -71,8 +71,14 @@ namespace ModalTimer
 
                 using (Process process = new Process { StartInfo = startInfo })
                 {
-                    process.OutputDataReceived += (s, e) => LogToFile($"[Output] {e.Data}", logFilePath);
-                    process.ErrorDataReceived += (s, e) => LogToFile($"[Error] {e.Data}", logFilePath);
+                    process.OutputDataReceived += (s, e) => {
+                        if (!string.IsNullOrEmpty(e.Data))
+                            LogToFile($"[Output] {e.Data}", logFilePath);
+                    };
+                    process.ErrorDataReceived += (s, e) => {
+                        if (!string.IsNullOrEmpty(e.Data))
+                            LogToFile($"[Error] {e.Data}", logFilePath);
+                    };
 
                     process.Start();
                     process.BeginOutputReadLine();
