@@ -133,11 +133,10 @@ namespace ModalTimer
                 logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
             }
 
-            Trace.Listeners.Clear();
-            Trace.Listeners.Add(new TextWriterTraceListener(logFilePath, "myListener"));
-            Trace.WriteLine($"{DateTime.Now}: {message}");
-            Trace.Flush();
+            string logMessage = $"{DateTime.Now}: {message}";
+            File.AppendAllText(logFilePath, logMessage + Environment.NewLine);
         }
+
         private async Task<string> GetInstanceIdAsync()
         {
             using var httpClient = new HttpClient();
