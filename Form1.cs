@@ -36,7 +36,7 @@ namespace ModalTimer
             countdownTimer.Start();
         }
 
-        private void CountdownTimer_Tick(object? sender, EventArgs e)
+        private async void CountdownTimer_Tick(object? sender, EventArgs e)
         {
             remainingTime--;
             Label_CountDown.Text = $"{remainingTime} seconds";
@@ -44,7 +44,7 @@ namespace ModalTimer
             if (remainingTime <= 0)
             {
                 countdownTimer?.Stop();
-                TerminateInstance();
+                await TerminateInstance();
                 this.Close();
             }
         }
@@ -113,10 +113,10 @@ namespace ModalTimer
             Trace.Flush();
         }
 
-        private void Btn_Yes_Click(object sender, EventArgs e)
+        private async void Btn_Yes_Click(object sender, EventArgs e)
         {
             countdownTimer?.Stop();
-            TerminateInstance();
+            await TerminateInstance();
             this.Close();
         }
 
