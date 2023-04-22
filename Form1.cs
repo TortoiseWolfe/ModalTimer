@@ -54,7 +54,6 @@ namespace ModalTimer
                 LogToFile("Starting TerminateEC2Instance.", logFilePath);
 
                 var ec2Client = new AmazonEC2Client(RegionEndpoint.USEast1); // Replace with your desired region
-                LogToFile("Created AmazonEC2Client.", logFilePath);
 
                 var instanceId = await GetInstanceIdAsync();
                 LogToFile($"Instance ID: {instanceId}", logFilePath);
