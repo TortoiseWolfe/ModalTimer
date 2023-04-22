@@ -3,7 +3,8 @@ using System.Drawing;
 using System.Net.Http;
 using System.Diagnostics;
 using System.Windows.Forms;
-
+using System.Threading.Tasks;
+using Amazon;
 using Amazon.EC2;
 using Amazon.EC2.Model;
 using Amazon.Util;
@@ -35,7 +36,6 @@ namespace ModalTimer
             countdownTimer.Start();
         }
 
-
         private void CountdownTimer_Tick(object? sender, EventArgs e)
         {
             remainingTime--;
@@ -51,51 +51,53 @@ namespace ModalTimer
 
         private async void TerminateInstance()
         {
-            string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "powershell_log.txt");
-            string scriptFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts");
-            string scriptPath = Path.Combine(scriptFolderPath, "TerminateInstance.ps1");
+            string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
 
             try
             {
+                LogToFile("Starting TerminateEC2Instance.", logFilePath);
 
-                LogToFile($"Running PowerShell script: {scriptPath}", logFilePath);
-                var startInfo = new ProcessStartInfo
+                var ec2Client = new AmazonEC2Client(RegionEndpoint.USEast1); // Replace with your desired region
+
+                var instanceId = await GetInstanceIdAsync();
+                LogToFile($"Instance ID: {instanceId}", logFilePath);
+
+                var request = new TerminateInstancesRequest
                 {
-                    FileName = @"C:\Program Files\PowerShell7\pwsh.exe",
-                    Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
+                    InstanceIds = new List<string> { instanceId }
                 };
 
-                using (Process process = new Process { StartInfo = startInfo })
+                var response = await ec2Client.TerminateInstancesAsync(request);
+
+                if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    process.OutputDataReceived += (s, e) => {
-                        if (!string.IsNullOrEmpty(e.Data))
-                            LogToFile($"[Output] {e.Data}", logFilePath);
-                    };
-                    process.ErrorDataReceived += (s, e) => {
-                        if (!string.IsNullOrEmpty(e.Data))
-                            LogToFile($"[Error] {e.Data}", logFilePath);
-                    };
-
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-                    // Wrap the process execution in a Task and use await
-                    await Task.Run(() => process.WaitForExit());
-                    process.WaitForExit();
+                    LogToFile("Instance termination request sent successfully.", logFilePath);
                 }
-
-                LogToFile("PowerShell script completed.", logFilePath);
+                else
+                {
+                    LogToFile($"Failed to terminate instance. HTTP status code: {response.HttpStatusCode}", logFilePath);
+                }
+            }
+            catch (AmazonServiceException ex)
+            {
+                LogToFile($"An Amazon service error occurred: {ex.Message}", logFilePath);
+            }
+            catch (AmazonClientException ex)
+            {
+                LogToFile($"An Amazon client error occurred: {ex.Message}", logFilePath);
             }
             catch (Exception ex)
             {
-                string errorMessage = $"An error occurred: {ex.Message}";
-                LogToFile(errorMessage, logFilePath);
-                MessageBox.Show(errorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                LogToFile($"An error occurred: {ex.Message}", logFilePath);
             }
+        }
+
+        private async Task<string> GetInstanceIdAsync()
+        {
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync("http://169.254.169.254/latest/meta-data/instance-id");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
         }
 
         private void LogToFile(string message, string logFilePath = "")
@@ -110,7 +112,6 @@ namespace ModalTimer
             Trace.WriteLine($"{DateTime.Now}: {message}");
             Trace.Flush();
         }
-
 
         private void Btn_Yes_Click(object sender, EventArgs e)
         {
