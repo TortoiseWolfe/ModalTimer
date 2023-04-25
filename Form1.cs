@@ -53,7 +53,7 @@ namespace ModalTimer
             {
                 LogToFile("Starting TerminateEC2Instance.", logFilePath);
 
-                var ec2Client = new AmazonEC2Client(RegionEndpoint.USEast1); // Replace with your desired region
+                var ec2Client = new AmazonEC2Client(RegionEndpoint.USEast2); // Replace with your desired region
 
                 var instanceId = await GetInstanceIdAsync();
                 LogToFile($"Instance ID: {instanceId}", logFilePath);
@@ -85,7 +85,7 @@ namespace ModalTimer
                 LogToFile($"Instance Name: {instanceName}", logFilePath);
 
                 // Terminate instance if the name matches your criteria
-                if (instanceName == "your-instance-name-here") // Replace with the desired instance name to check
+                if (instanceName == "minWIN") // Replace with the desired instance name to check
                 {
                     var request = new TerminateInstancesRequest
                     {
