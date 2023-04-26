@@ -22,7 +22,7 @@ namespace ModalTimer
         }
         private void Form1_Load(object sender, EventArgs e)
         {
-            Label_Message.Text = "Do you want to terminate the instance?";
+            Label_Message.Text = "Do you want to stop the instance?";
             Label_CountDown.Text = $"{remainingTime} seconds";
 
             string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
@@ -41,17 +41,17 @@ namespace ModalTimer
             if (remainingTime <= 0)
             {
                 countdownTimer?.Stop();
-                await TerminateInstance();
+                await StopInstance();
                 this.Close();
             }
         }
-        private async Task TerminateInstance()
+        private async Task StopInstance()
         {
             string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "error_log.txt");
 
             try
             {
-                LogToFile("Starting TerminateEC2Instance.", logFilePath);
+                LogToFile("Starting StopEC2Instance.", logFilePath);
 
                 var ec2Client = new AmazonEC2Client(RegionEndpoint.USEast1); // Replace with your desired region
 
@@ -84,33 +84,33 @@ namespace ModalTimer
 
                 LogToFile($"Instance Name: {instanceName}", logFilePath);
 
-                // Terminate instance if the name matches your criteria
+                // Stop instance if the name matches your criteria
                 if (instanceName == "your-instance-name-here") // Replace with the desired instance name to check
                 {
-                    var request = new TerminateInstancesRequest
+                    var request = new StopInstancesRequest
                     {
                         InstanceIds = new List<string> { instanceId }
                     };
 
-                    var response = await ec2Client.TerminateInstancesAsync(request);
-                    LogToFile($"TerminateInstancesAsync response: {response.HttpStatusCode}", logFilePath);
+                    var response = await ec2Client.StopInstancesAsync(request);
+                    LogToFile($"StopInstancesAsync response: {response.HttpStatusCode}", logFilePath);
 
                     if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
                     {
-                        LogToFile("Instance termination request sent successfully.", logFilePath);
-                        foreach (InstanceStateChange instanceStateChange in response.TerminatingInstances)
+                        LogToFile("Instance stop request sent successfully.", logFilePath);
+                        foreach (InstanceStateChange instanceStateChange in response.StoppingInstances)
                         {
                             LogToFile($"Instance {instanceStateChange.InstanceId} changed state from {instanceStateChange.PreviousState.Name} to {instanceStateChange.CurrentState.Name}", logFilePath);
                         }
                     }
                     else
                     {
-                        LogToFile($"Failed to terminate instance. HTTP status code: {response.HttpStatusCode}", logFilePath);
+                        LogToFile($"Failed to stop instance. HTTP status code: {response.HttpStatusCode}", logFilePath);
                     }
                 }
                 else
                 {
-                    LogToFile("Instance name does not match the criteria. Termination request not sent.", logFilePath);
+                    LogToFile("Instance name does not match the criteria. Stop request not sent.", logFilePath);
                 }
             }
             catch (AmazonServiceException ex)
@@ -147,7 +147,7 @@ namespace ModalTimer
         private async void Btn_Yes_Click(object sender, EventArgs e)
         {
             countdownTimer?.Stop();
-            await TerminateInstance();
+            await StopInstance();
             this.Close();
         }
         private void Btn_No_Click(object sender, EventArgs e)
