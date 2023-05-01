@@ -22,6 +22,7 @@ namespace ModalTimer
         }
         private void Form1_Load(object sender, EventArgs e)
         {
+            this.TopMost = true;
             Label_Message.Text = "Do you want to stop the instance?";
             Label_CountDown.Text = $"{remainingTime} seconds";
 
