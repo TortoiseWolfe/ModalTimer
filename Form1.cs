@@ -59,59 +59,25 @@ namespace ModalTimer
                 var instanceId = await GetInstanceIdAsync();
                 LogToFile($"Instance ID: {instanceId}", logFilePath);
 
-                // Check instance name
-                var describeRequest = new DescribeInstancesRequest { InstanceIds = new List<string> { instanceId } };
-                var describeResponse = await ec2Client.DescribeInstancesAsync(describeRequest);
-                LogToFile("Received DescribeInstancesAsync response.", logFilePath);
-
-                string instanceName = "";
-                foreach (var reservation in describeResponse.Reservations)
+                var request = new StopInstancesRequest
                 {
-                    foreach (var instance in reservation.Instances)
-                    {
-                        if (instance.InstanceId == instanceId)
-                        {
-                            foreach (var tag in instance.Tags)
-                            {
-                                if (tag.Key == "Name")
-                                {
-                                    instanceName = tag.Value;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                    InstanceIds = new List<string> { instanceId }
+                };
 
-                LogToFile($"Instance Name: {instanceName}", logFilePath);
+                var response = await ec2Client.StopInstancesAsync(request);
+                LogToFile($"StopInstancesAsync response: {response.HttpStatusCode}", logFilePath);
 
-                // Terminate instance if the name matches your criteria
-                if (instanceName == "minWIN") // Replace with the desired instance name to check
+                if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    var request = new StopInstancesRequest
+                    LogToFile("Instance stop request sent successfully.", logFilePath);
+                    foreach (InstanceStateChange instanceStateChange in response.StoppingInstances)
                     {
-                        InstanceIds = new List<string> { instanceId }
-                    };
-
-                    var response = await ec2Client.StopInstancesAsync(request);
-                    LogToFile($"StopInstancesAsync response: {response.HttpStatusCode}", logFilePath);
-
-                    if (response.HttpStatusCode == System.Net.HttpStatusCode.OK)
-                    {
-                        LogToFile("Instance stop request sent successfully.", logFilePath);
-                        foreach (InstanceStateChange instanceStateChange in response.StoppingInstances)
-                        {
-                            LogToFile($"Instance {instanceStateChange.InstanceId} changed state from {instanceStateChange.PreviousState.Name} to {instanceStateChange.CurrentState.Name}", logFilePath);
-                        }
-                    }
-                    else
-                    {
-                        LogToFile($"Failed to stop instance. HTTP status code: {response.HttpStatusCode}", logFilePath);
+                        LogToFile($"Instance {instanceStateChange.InstanceId} changed state from {instanceStateChange.PreviousState.Name} to {instanceStateChange.CurrentState.Name}", logFilePath);
                     }
                 }
                 else
                 {
-                    LogToFile("Instance name does not match the criteria. Stop request not sent.", logFilePath);
+                    LogToFile($"Failed to stop instance. HTTP status code: {response.HttpStatusCode}", logFilePath);
                 }
             }
             catch (AmazonServiceException ex)
@@ -137,7 +103,6 @@ namespace ModalTimer
             string logMessage = $"{DateTime.Now}: {message}";
             File.AppendAllText(logFilePath, logMessage + Environment.NewLine);
         }
-
         private async Task<string> GetInstanceIdAsync()
         {
             using var httpClient = new HttpClient();
